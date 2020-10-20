@@ -113,11 +113,13 @@ namespace CommandLine.Text
         private bool autoVersion;
         private bool addNewLineBetweenHelpSections;
 
+        public static SentenceBuilder SelfSentenceBuilder { get; set; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CommandLine.Text.HelpText"/> class.
         /// </summary>
         public HelpText()
-            : this(SentenceBuilder.Create(), string.Empty, string.Empty)
+            : this(SelfSentenceBuilder == null ? SentenceBuilder.Create() : SelfSentenceBuilder, string.Empty, string.Empty)
         {
         }
 
@@ -329,6 +331,7 @@ namespace CommandLine.Text
                 Heading = HeadingInfo.Empty,
                 Copyright = CopyrightInfo.Empty,
                 AdditionalNewLineAfterOption = true,
+                additionalNewLineAfterOption = true,
                 AddDashesToOption = !verbsIndex,
                 MaximumDisplayWidth = maxDisplayWidth
             };
@@ -669,6 +672,7 @@ namespace CommandLine.Text
                 yield return line.ToString();
             }
 
+            yield return Environment.NewLine;
             var mutuallyErrs =
                 formatMutuallyExclusiveSetErrors(
                     meaningfulErrors.OfType<MutuallyExclusiveSetError>());
@@ -727,12 +731,13 @@ namespace CommandLine.Text
             {
                 var example = mapperFunc(e);
                 var exampleText = new StringBuilder(example.HelpText)
-                    .Append(':');
+                    .Append(":");
                 yield return exampleText.ToString();
                 var styles = example.GetFormatStylesOrDefault();
                 foreach (var s in styles)
                 {
                     var commandLine = new StringBuilder(OptionPrefixWidth.Spaces())
+                        .Append(' ')
                         .Append(appAlias)
                         .Append(' ')
                         .Append(Parser.Default.FormatCommandLine(example.Sample,
@@ -744,6 +749,7 @@ namespace CommandLine.Text
                                 config.SkipDefault = s.SkipDefault;
                             }));
                     yield return commandLine.ToString();
+                    yield return Environment.NewLine;
                 }
             }
         }
@@ -767,15 +773,25 @@ namespace CommandLine.Text
                     .AppendWhen(preOptionsHelp.SafeLength() > 0,
                         NewLineIfNeededBefore(preOptionsHelp),
                         Environment.NewLine,
-                        preOptionsHelp.ToString())
-                    .AppendWhen(optionsHelp.SafeLength() > 0,
-                        Environment.NewLine,
-                        Environment.NewLine,
-                        optionsHelp.SafeToString())
-                    .AppendWhen(postOptionsHelp.SafeLength() > 0,
-                        NewLineIfNeededBefore(postOptionsHelp),
-                        Environment.NewLine,
-                        postOptionsHelp.ToString());
+                        preOptionsHelp.ToString());
+
+            result.Append(Environment.NewLine);
+            if (preOptionsHelp.Length <= 0)
+            {
+                result.Append(Environment.NewLine);
+                result.Append("Command:");
+            }
+            else
+            {
+                result.Append("Options:");
+            }
+            result.AppendWhen(optionsHelp.SafeLength() > 0,
+                      Environment.NewLine,
+                      optionsHelp.SafeToString())
+                  .AppendWhen(postOptionsHelp.SafeLength() > 0,
+                      NewLineIfNeededBefore(postOptionsHelp),
+                      Environment.NewLine,
+                      postOptionsHelp.ToString());
 
             string NewLineIfNeededBefore(StringBuilder sb)
             {
@@ -857,10 +873,14 @@ namespace CommandLine.Text
                                       verbTuple.Item1.IsDefault ? "(Default Verb) " + verbTuple.Item1.HelpText : verbTuple.Item1.HelpText,  //Default verb
                                       string.Empty,
                                       verbTuple.Item1.Hidden);
+            if (autoHelp || autoVersion)
+            {
+                optionSpecs = optionSpecs.Concat(new[] { MakeNullEntry() });
+            }
             if (autoHelp)
-                optionSpecs = optionSpecs.Concat(new[] { MakeHelpEntry() });
+                optionSpecs = optionSpecs.Concat(new[] { MakeHelpEntry("-") });
             if (autoVersion)
-                optionSpecs = optionSpecs.Concat(new[] { MakeVersionEntry() });
+                optionSpecs = optionSpecs.Concat(new[] { MakeVersionEntry("-") });
             return optionSpecs;
         }
 
@@ -873,9 +893,7 @@ namespace CommandLine.Text
             var maxLength = GetMaxLength(specifications);
 
 
-
             optionsHelp = new StringBuilder(BuilderCapacity);
-
             var remainingSpace = maximumLength - (maxLength + TotalOptionPadding);
 
             if (OptionComparison != null)
@@ -906,22 +924,33 @@ namespace CommandLine.Text
             return this;
         }
 
-        private OptionSpecification MakeHelpEntry()
+        private OptionSpecification MakeHelpEntry(string suffix = "")
         {
             return OptionSpecification.NewSwitch(
-                string.Empty,
-                "help",
+               suffix + "h",
+                suffix + suffix + "help",
                 false,
                 sentenceBuilder.HelpCommandText(AddDashesToOption),
                 string.Empty,
                 false);
         }
 
-        private OptionSpecification MakeVersionEntry()
+        private OptionSpecification MakeNullEntry()
         {
             return OptionSpecification.NewSwitch(
                 string.Empty,
-                "version",
+                "\r\nOptions:",
+                false,
+                "",
+                string.Empty,
+                false);
+        }
+
+        private OptionSpecification MakeVersionEntry(string suffix = "")
+        {
+            return OptionSpecification.NewSwitch(
+                suffix + "v",
+                suffix + suffix + "version",
                 false,
                 sentenceBuilder.VersionCommandText(AddDashesToOption),
                 string.Empty,
@@ -990,7 +1019,7 @@ namespace CommandLine.Text
 
             optionsHelp
                 .Append(indented)
-                .Append(Environment.NewLine)
+                .AppendWhen(optionHelpText != "", Environment.NewLine)
                 .AppendWhen(additionalNewLineAfterOption, Environment.NewLine);
 
             return this;

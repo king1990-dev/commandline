@@ -145,9 +145,13 @@ namespace CommandLine
                         {
                             Specification = Specification.FromProperty(pi),
                             Value = pi.GetValue(options, null).NormalizeValue(),
-                            PropertyValue = pi.GetValue(options, null)
+                            PropertyValue = pi.GetValue(options, null),
+                            Order = pi.GetCustomAttributes(typeof(OptionAttribute), true)?.Count() <= 0
+                            ? 0
+                            : (pi.GetCustomAttributes(typeof(OptionAttribute), true)[0] as OptionAttribute).Order
                         })
                  where !info.PropertyValue.IsEmpty(info.Specification, settings.SkipDefault)
+                 orderby info.Order
                  select info)
                     .Memoize();
 
@@ -155,14 +159,16 @@ namespace CommandLine
                               let o = (OptionSpecification)info.Specification
                               where o.TargetType != TargetType.Switch || (o.TargetType == TargetType.Switch && ((bool)info.Value))
                               where !o.Hidden || settings.ShowHidden
-                              orderby o.UniqueName()
+                              //   orderby o.UniqueName()
+                              orderby info.Order
                               select info;
 
             var shortSwitches = from info in allOptSpecs
                                 let o = (OptionSpecification)info.Specification
                                 where o.TargetType == TargetType.Switch
                                 where o.ShortName.Length > 0
-                                orderby o.UniqueName()
+                                // orderby o.UniqueName()
+                                orderby info.Order
                                 select info;
 
             var optSpecs = settings.GroupSwitches
@@ -171,7 +177,7 @@ namespace CommandLine
 
             var valSpecs = from info in specs.Where(i => i.Specification.Tag == SpecificationType.Value)
                            let v = (ValueSpecification)info.Specification
-                           orderby v.Index
+                           //    orderby v.Index
                            select info;
 
             builder = settings.GroupSwitches && shortSwitches.Any()
@@ -181,8 +187,8 @@ namespace CommandLine
             optSpecs.ForEach(
                 opt =>
                     builder
+                        .Append("\r\n   \t")
                         .Append(FormatOption((OptionSpecification)opt.Specification, opt.Value, settings))
-                        .Append(' ')
                 );
 
             builder.AppendWhen(valSpecs.Any() && parser.Settings.EnableDashDash, "-- ");
@@ -221,6 +227,7 @@ namespace CommandLine
                     var e = ((IEnumerable)value).GetEnumerator();
                     while (e.MoveNext())
                         builder.Append(format(e.Current)).Append(sep);
+
                     builder.TrimEndIfMatch(sep);
                     break;
             }

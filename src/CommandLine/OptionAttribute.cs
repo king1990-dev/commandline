@@ -16,7 +16,8 @@ namespace CommandLine
         private readonly string shortName;
         private string setName;
         private char separator;
-        private string group=string.Empty;
+        private string group = string.Empty;
+        private int order { get; set; }
 
         private OptionAttribute(string shortName, string longName) : base()
         {
@@ -113,6 +114,12 @@ namespace CommandLine
         {
             get { return group; }
             set { group = value; }
+        }
+
+        public int Order
+        {
+            get { return order; }
+            set { order = value; }
         }
     }
 }

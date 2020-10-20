@@ -37,14 +37,13 @@ namespace CommandLine.Core
                 var firstArg = arguments.First();
 
                 bool preprocCompare(string command) =>
-                        nameComparer.Equals(command, firstArg) ||
-                        nameComparer.Equals(string.Concat("--", command), firstArg);
+                        nameComparer.Equals(string.Concat(command.Length > 1 ? "--" : "-", command), firstArg);
 
-                return (autoHelp && preprocCompare("help"))
+                return (autoHelp && (preprocCompare("help") || preprocCompare("h")))
                     ? MakeNotParsed(types,
                         MakeHelpVerbRequestedError(verbs,
                             arguments.Skip(1).FirstOrDefault() ?? string.Empty, nameComparer))
-                    : (autoVersion && preprocCompare("version"))
+                    : (autoVersion && (preprocCompare("version") || preprocCompare("v")))
                         ? MakeNotParsed(types, new VersionRequestedError())
                         : MatchVerb(tokenizer, verbs, defaultVerb, arguments, nameComparer, ignoreValueCase, parsingCulture, autoHelp, autoVersion, nonFatalErrors);
             }
@@ -114,7 +113,7 @@ namespace CommandLine.Core
                 ignoreValueCase,
                 parsingCulture,
                 autoHelp,
-                autoVersion,                
+                autoVersion,
                 nonFatalErrors);
         }
 

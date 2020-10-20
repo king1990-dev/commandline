@@ -202,7 +202,11 @@ namespace CommandLine
             parserResult.WithNotParsed(
                 errors =>
                     Maybe.Merge(errors.ToMaybe(), helpWriter.ToMaybe())
-                        .Do((_, writer) => writer.Write(HelpText.AutoBuild(parserResult, maxDisplayWidth)))
+                        .Do((_, writer) =>
+                        {
+                            var info = HelpText.AutoBuild(parserResult, maxDisplayWidth);
+                            writer.Write(info);
+                        })
                 );
 
             return parserResult;

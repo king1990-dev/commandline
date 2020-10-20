@@ -23,7 +23,8 @@ namespace CommandLine.Core
         {
             return
                 arguments =>
-                    nameComparer.Equals("--help", arguments.First())
+                    nameComparer.Equals("--help", arguments.First()) ||
+                    nameComparer.Equals("-h", arguments.First())
                         ? new Error[] { new HelpRequestedError() }
                         : Enumerable.Empty<Error>();
         }
@@ -32,7 +33,8 @@ namespace CommandLine.Core
         {
             return
                 arguments =>
-                    nameComparer.Equals("--version", arguments.First())
+                    nameComparer.Equals("--version", arguments.First()) ||
+                    nameComparer.Equals("-v", arguments.First())
                         ? new Error[] { new VersionRequestedError() }
                         : Enumerable.Empty<Error>();
         }

@@ -27,7 +27,8 @@ namespace CommandLine.Text
         /// <summary>
         /// Factory to allow custom SentenceBuilder injection
         /// </summary>
-        public static Func<SentenceBuilder> Factory { get; set; } = () => new DefaultSentenceBuilder();
+        // public static Func<SentenceBuilder> Factory { get; set; } = () => new DefaultSentenceBuilder();
+        public static Func<SentenceBuilder> Factory { get; set; } = () => new MySentenceBuilder();
 
         /// <summary>
         /// Gets a delegate that returns the word 'required'.
@@ -211,6 +212,104 @@ namespace CommandLine.Text
                     };
                 }
             }
+        }
+
+        private class MySentenceBuilder : DefaultSentenceBuilder
+        {
+            public override Func<string> RequiredWord
+            {
+                get { return () => "必填项."; }
+            }
+
+            public override Func<string> ErrorsHeadingText
+            {
+                get { return () => "ERROR(S):"; }
+            }
+
+            public override Func<string> UsageHeadingText
+            {
+                get { return () => "USAGE:"; }
+            }
+
+            public override Func<string> OptionGroupWord
+            {
+                get { return () => "Group"; }
+            }
+
+            public override Func<bool, string> HelpCommandText
+            {
+                get
+                {
+                    return isOption => isOption
+                        ? "展示帮助信息."
+                        : "展示特定命令的帮助信息.";
+                }
+            }
+
+            public override Func<bool, string> VersionCommandText
+            {
+                get { return _ => "展示版本信息."; }
+            }
+            public override Func<Error, string> FormatError
+            {
+                get
+                {
+                    return error =>
+                        {
+                            switch (error.Tag)
+                            {
+                                case ErrorType.BadFormatTokenError:
+                                    return "Token '".JoinTo(((BadFormatTokenError)error).Token, "' is not recognized.");
+                                case ErrorType.MissingValueOptionError:
+                                    return "Option '".JoinTo(((MissingValueOptionError)error).NameInfo.NameText,
+                                        "' has no value.");
+                                case ErrorType.UnknownOptionError:
+                                    return "参数 '".JoinTo(((UnknownOptionError)error).Token, "'无法识别.");
+                                case ErrorType.MissingRequiredOptionError:
+                                    var errMisssing = ((MissingRequiredOptionError)error);
+                                    return errMisssing.NameInfo.Equals(NameInfo.EmptyName)
+                                               ? "A required value not bound to option name is missing."
+                                               : "必填参数 '".JoinTo(errMisssing.NameInfo.NameText, "' 缺失.");
+                                case ErrorType.BadFormatConversionError:
+                                    var badFormat = ((BadFormatConversionError)error);
+                                    return badFormat.NameInfo.Equals(NameInfo.EmptyName)
+                                               ? "A value not bound to option name is defined with a bad format."
+                                               : "Option '".JoinTo(badFormat.NameInfo.NameText, "' is defined with a bad format.");
+                                case ErrorType.SequenceOutOfRangeError:
+                                    var seqOutRange = ((SequenceOutOfRangeError)error);
+                                    return seqOutRange.NameInfo.Equals(NameInfo.EmptyName)
+                                               ? "A sequence value not bound to option name is defined with few items than required."
+                                               : "A sequence option '".JoinTo(seqOutRange.NameInfo.NameText,
+                                                    "' is defined with fewer or more items than required.");
+                                case ErrorType.BadVerbSelectedError:
+                                    return "命令 '".JoinTo(((BadVerbSelectedError)error).Token, "' 无法识别.");
+                                case ErrorType.NoVerbSelectedError:
+                                    return "至少输入一个命令.";
+                                case ErrorType.RepeatedOptionError:
+                                    return "Option '".JoinTo(((RepeatedOptionError)error).NameInfo.NameText,
+                                        "' is defined multiple times.");
+                                case ErrorType.SetValueExceptionError:
+                                    var setValueError = (SetValueExceptionError)error;
+                                    return "Error setting value to option '".JoinTo(setValueError.NameInfo.NameText, "': ", setValueError.Exception.Message);
+                                case ErrorType.MissingGroupOptionError:
+                                    var missingGroupOptionError = (MissingGroupOptionError)error;
+                                    return "".JoinTo(
+                                        string.Empty,
+                                        "(",
+                                        string.Join(", ", missingGroupOptionError.Names.Select(n => "-" + n.ShortName)),
+                                        ")至少应该选择一个.");
+                                case ErrorType.GroupOptionAmbiguityError:
+                                    var groupOptionAmbiguityError = (GroupOptionAmbiguityError)error;
+                                    return "Both SetName and Group are not allowed in option: (".JoinTo(groupOptionAmbiguityError.Option.NameText, ")");
+                                case ErrorType.MultipleDefaultVerbsError:
+                                    return MultipleDefaultVerbsError.ErrorMessage;
+
+                            }
+                            throw new InvalidOperationException();
+                        };
+                }
+            }
+
         }
     }
 }
