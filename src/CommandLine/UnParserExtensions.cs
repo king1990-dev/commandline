@@ -301,8 +301,8 @@ namespace CommandLine
             if (ReflectionHelper.IsFSharpOptionType(value.GetType()) && !FSharpOptionHelper.IsSome(value)) return true;
 #endif
             if (value is ValueType && value.Equals(value.GetType().GetDefaultValue())) return true;
-            if (value is string && ((string)value).Length == 0) return true;
-            if (value is IEnumerable && !((IEnumerable)value).GetEnumerator().MoveNext()) return true;
+            // if (value is string && ((string)value).Length == 0) return true;
+            // if (value is IEnumerable && !((IEnumerable)value).GetEnumerator().MoveNext()) return true;
             return false;
         }
 

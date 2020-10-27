@@ -775,16 +775,20 @@ namespace CommandLine.Text
                         Environment.NewLine,
                         preOptionsHelp.ToString());
 
-            result.Append(Environment.NewLine);
-            if (preOptionsHelp.Length <= 0)
+            if (optionsHelp.SafeLength() > 0 || postOptionsHelp.SafeLength() > 0)
             {
                 result.Append(Environment.NewLine);
-                result.Append("Command:");
+                if (preOptionsHelp.Length <= 0)
+                {
+                    result.Append(Environment.NewLine);
+                    result.Append("Command:");
+                }
+                else
+                {
+                    result.Append("Options:");
+                }
             }
-            else
-            {
-                result.Append("Options:");
-            }
+
             result.AppendWhen(optionsHelp.SafeLength() > 0,
                       Environment.NewLine,
                       optionsHelp.SafeToString())
@@ -881,6 +885,8 @@ namespace CommandLine.Text
                 optionSpecs = optionSpecs.Concat(new[] { MakeHelpEntry("-") });
             if (autoVersion)
                 optionSpecs = optionSpecs.Concat(new[] { MakeVersionEntry("-") });
+            // optionSpecs = optionSpecs.Concat(new[] { MakeEdgeIDEntry() });
+
             return optionSpecs;
         }
 
@@ -918,7 +924,6 @@ namespace CommandLine.Text
                 specifications.ForEach(
                     option =>
                         AddOption(requiredWord, optionGroupWord, maxLength, option, remainingSpace));
-
             }
 
             return this;
@@ -942,6 +947,17 @@ namespace CommandLine.Text
                 "\r\nOptions:",
                 false,
                 "",
+                string.Empty,
+                false);
+        }
+
+        private OptionSpecification MakeEdgeIDEntry()
+        {
+            return OptionSpecification.NewSwitch(
+                "-i",
+                "--identifier ",
+                false,
+                "返回边缘端ID(edgeid)",
                 string.Empty,
                 false);
         }

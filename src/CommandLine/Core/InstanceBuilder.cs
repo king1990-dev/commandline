@@ -43,6 +43,47 @@ namespace CommandLine.Core
                     : ReflectionHelper.CreateDefaultImmutableInstance<T>(
                         (from p in specProps select p.Specification.ConversionType).ToArray());
 
+            List<string> tempList = new List<string>(arguments);
+            if (tempList.Count > 0)
+            {
+                if (tempList[0].StartsWith("-") || tempList[0].StartsWith("--"))//只处理第一个参数是-开头的
+                {
+                    tempList = new List<string>();
+                    string name = string.Empty;
+                    foreach (var item in arguments)
+                    {
+                        if (item.StartsWith("-") || item.StartsWith("--"))
+                        {
+                            if (!string.IsNullOrEmpty(name))
+                            {
+                                //上一次也是option
+                                var tt = optionSpecs.Where(c => string.Format("-{0}", c.ShortName) == name || string.Format("--{0}", c.LongName) == name);
+                                if (tt != null || tt.Count() > 0)
+                                {
+                                    tempList.Add(string.Empty);
+                                }
+                            }
+                            name = item;
+                        }
+                        else
+                        {
+                            name = string.Empty;
+                        }
+                        tempList.Add(item);
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        //上一次也是option
+                        var tt = optionSpecs.Where(c => string.Format("-{0}", c.ShortName) == name || string.Format("--{0}", c.LongName) == name);
+                        if (tt != null || tt.Count() > 0)
+                        {
+                            tempList.Add(string.Empty);
+                        }
+                    }
+                }
+                arguments = tempList;
+            }
 
             Func<IEnumerable<Error>, ParserResult<T>> notParsed =
                 errs => new NotParsed<T>(makeDefault().GetType().ToTypeInfo(), errs);

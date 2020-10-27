@@ -25,7 +25,8 @@ namespace CommandLine.Core
                                     .SkipWhile(s => s.Equals(first)).Take(1)
                                     .SingleOrDefault(x => x.IsValue()).ToMaybe()
                                     .Map(second => TypeDescriptor.Create(second.TargetType, second.Max));
-                                return descr.WithNextValue(next);
+                                var result = descr.WithNextValue(next);
+                                return result;
                             });
             return info;
 
